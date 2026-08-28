@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#16a34a">
+<title>Preço Certo</title>
+<style>
+:root{--green:#20e36b;--green2:#0fa653;--light:#103b23;--red:#ff5b61;--text:#f5f7f6;--muted:#98a39d;--card:#151a17;--bg:#080c0a;--border:#26302b;--soft:#101612}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+.app{max-width:480px;margin:auto;min-height:100vh;background:radial-gradient(circle at 50% -10%,#173a25 0,#0b100d 32%,#080c0a 70%);padding-bottom:82px}
+header{padding:18px 18px 14px;background:rgba(9,13,11,.94);backdrop-filter:blur(14px);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:11px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,#22e36b,#0d9f50);display:grid;place-items:center;color:white;box-shadow:0 7px 22px #20e36b33;position:relative;overflow:hidden}.logo:before{content:'▥';font-size:25px;font-weight:900;transform:scaleX(1.15)}.logo:after{content:'⌕';position:absolute;font-size:21px;right:5px;bottom:0;font-weight:900}
+h1{font-size:21px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:2px}
+main{padding:16px}.screen{display:none}.screen.active{display:block}
+.hero{background:linear-gradient(145deg,#19b85b,#08763b);color:white;border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 8px 24px #16a34a22}
+.hero .label{font-size:13px;opacity:.9}.hero .total{font-size:30px;font-weight:800;margin:5px 0}
+select,input,button{font:inherit}select,input{width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;background:#101512;color:var(--text);outline:none}input:focus,select:focus{border-color:var(--green)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:15px;margin-bottom:11px}.card h3{margin:0 0 5px;font-size:15px}.muted{color:var(--muted);font-size:12px}
+.store{display:flex;align-items:center;gap:12px;cursor:pointer}.storeIcon{width:44px;height:44px;border-radius:13px;background:linear-gradient(145deg,#123d25,#0d2618);display:grid;place-items:center;font-size:21px;border:1px solid #1d5a36}.storeInfo{flex:1}.storeName{font-weight:700}.arrow{font-size:20px;color:#9ca3af}
+button{border:0;border-radius:11px;padding:12px 14px;cursor:pointer;font-weight:700}.primary{background:linear-gradient(135deg,#22e36b,#0fb454);color:#06120a;width:100%;box-shadow:0 7px 18px #20e36b25}.secondary{background:#15301f;color:#6ee7a0}.danger{background:#fee2e2;color:#b91c1c}.small{padding:8px 10px;font-size:12px}
+.row{display:flex;gap:9px;align-items:center}.between{display:flex;justify-content:space-between;align-items:center;gap:10px}.mt{margin-top:12px}
+.product{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #29322d}.product:last-child{border-bottom:0}.check{width:22px;height:22px;accent-color:var(--green)}.pinfo{flex:1}.pname{font-weight:700;font-size:14px}.price{font-weight:800}.up{color:var(--red);font-size:11px}.down{color:var(--green);font-size:11px}.same{color:#777;font-size:11px}
+.tabs{display:flex;gap:5px;background:#151b17;padding:4px;border-radius:12px;margin-bottom:12px}.tab{flex:1;background:transparent;padding:9px;font-size:12px}.tab.active{background:#222a25;color:var(--green);box-shadow:0 1px 5px #00000012}
+.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100%);height:70px;background:#101512;border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;z-index:10}.nav{background:none;color:#66706a;font-size:11px;padding:5px}.nav.active{color:var(--green);font-weight:800}.scanBtn{width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#22e36b,#0fa653);color:#06120a;font-size:23px;margin-top:-25px;box-shadow:0 5px 15px #16a34a44}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.modal.show{display:flex}.sheet{width:min(480px,100%);margin:auto;background:#101512;border-radius:22px 22px 0 0;padding:20px;max-height:90vh;overflow:auto}.sheet h2{margin:0 0 15px}
+.camera{height:280px;background:#050806;border-radius:18px;display:grid;place-items:center;color:white;text-align:center;margin-bottom:12px;position:relative;overflow:hidden}.camera video{width:100%;height:100%;object-fit:cover}.frame{position:absolute;width:72%;height:80px;border:3px solid #22c55e;border-radius:10px;z-index:2}
+.empty{text-align:center;padding:28px 10px;color:var(--muted)}
+.selectedBox{margin-top:14px;padding:13px;border:1px solid #31513b;border-radius:13px;background:#102016}.selectedBox strong{font-size:18px}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand"><div class="logo">🛒</div><div><h1>Preço Certo</h1><div class="sub">Histórico de preços inteligente</div></div></div></header>
+
+<main>
+<section id="home" class="screen active">
+<div class="hero"><div class="label">Total das compras no mês</div><div class="total" id="monthTotal">R$ 0,00</div><div class="between"><span id="monthName"></span><span id="monthVariation"></span></div></div>
+<div class="between"><h2 style="margin:0">Estabelecimentos</h2><button class="secondary small" onclick="openStore()">+ Adicionar</button></div>
+<div id="stores" class="mt"></div>
+</section>
+
+<section id="storeScreen" class="screen">
+<div class="between"><button class="secondary small" onclick="show('home')">← Voltar</button><strong id="storeTitle"></strong><button class="secondary small" onclick="openAddProduct()">＋</button></div><button class="primary mt" onclick="openScanner()">▥ Escanear código de barras</button>
+<div class="tabs mt"><button class="tab active" onclick="storeTab('list',this)">Lista de compras</button><button class="tab" onclick="storeTab('history',this)">Histórico</button></div>
+<div id="storeList"></div>
+</section>
+
+<section id="history" class="screen">
+<h2 style="margin-top:0">Histórico de preços</h2>
+<div id="historyList"></div>
+</section>
+
+<section id="reports" class="screen">
+<h2 style="margin-top:0">Relatórios</h2>
+<div class="card"><h3>Resumo do mês</h3><div id="report"></div></div>
+</section>
+</main>
+
+<nav class="bottom">
+<button class="nav active" onclick="show('home');nav(this)">⌂<br>Painel</button>
+<button class="nav" onclick="show('history');nav(this)">◷<br>Histórico</button>
+<button class="scanBtn" onclick="openScanner()">▥</button>
+<button class="nav" onclick="show('reports');nav(this)">▤<br>Relatórios</button>
+<button class="nav" onclick="openStore()">＋<br>Loja</button>
+</nav>
+</div>
+
+<div id="modal" class="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const KEY='precoCertoV1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{stores:[],products:[]};
+let currentStore=null, currentMonth=new Date().toISOString().slice(0,7);
+const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function monthLabel(m){let [y,mo]=m.split('-');return new Date(y,mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
+function show(id){if(window.currentCameraStream){window.currentCameraStream.getTracks().forEach(t=>t.stop());window.currentCameraStream=null;}if(window.zxingReader){try{window.zxingReader.reset()}catch(e){}}document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='home')renderHome();
+if(id==='history')renderHistory();if(id==='reports')renderReport();}
+function nav(el){document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
+function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show');if(window.currentCameraStream){window.currentCameraStream.getTracks().forEach(t=>t.stop());window.currentCameraStream=null;}if(window.zxingReader){try{window.zxingReader.reset()}catch(e){}}}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+function renderHome(){
+ let total=db.products.filter(p=>p.month===currentMonth).reduce((s,p)=>s+p.price,0);
+ document.getElementById('monthTotal').textContent=brl(total);
+ document.getElementById('monthName').textContent=monthLabel(currentMonth);
+ let el=document.getElementById('stores');el.innerHTML='';
+ if(!db.stores.length){el.innerHTML='<div class="empty">Nenhum estabelecimento cadastrado.<br><br>Adicione seu primeiro mercado ou açougue.</div>';return}
+ db.stores.forEach(s=>{let ps=db.products.filter(p=>p.storeId===s.id&&p.month===currentMonth);let t=ps.reduce((a,p)=>a+p.price,0);
+ el.innerHTML+=`<div class="card store" onclick="openStore(${s.id})"><div class="storeIcon">${s.icon||'🏪'}</div><div class="storeInfo"><div class="storeName">${esc(s.name)}</div><div class="muted">${ps.length} produto(s)</div></div><strong>${brl(t)}</strong><span class="arrow">›</span></div>`})
+}
+function openStore(id){
+ if(id){currentStore=db.stores.find(s=>s.id===id);show('storeScreen');document.getElementById('storeTitle').textContent=currentStore.name;renderStoreList();return}
+ openModal(`<h2>Novo estabelecimento</h2><input id="sname" placeholder="Ex.: Mercado, Açougue..."><div class="row mt"><button class="secondary" onclick="createStore('🛒')">🛒 Mercado</button><button class="secondary" onclick="createStore('🥩')">🥩 Açougue</button><button class="secondary" onclick="createStore('🥦')">🥦 Feira</button></div><button class="primary mt" onclick="createStore('🏪')">Criar estabelecimento</button><button class="secondary mt" style="width:100%" onclick="closeModal()">Cancelar</button>`)
+}
+function createStore(icon){let name=document.getElementById('sname').value.trim();if(!name)return alert('Digite o nome do estabelecimento.');let s={id:Date.now(),name,icon};db.stores.push(s);save();closeModal();openStore(s.id)}
+function renderStoreList(){
+ let ps=db.products.filter(p=>p.storeId===currentStore.id&&p.month===currentMonth);
+ let el=document.getElementById('storeList');
+ if(!ps.length){el.innerHTML='<div class="empty">Nenhum produto neste mês.<br><br>Use ＋ para adicionar ou escaneie um código.</div>';return}
+ el.innerHTML=`<div class="card"><div class="muted">Marque os produtos que estão na compra. O total atualiza na hora.</div>${ps.map(p=>productHTML(p)).join('')}<div class="selectedBox"><div class="between"><span>Selecionados</span><strong id="selectedCount">0</strong></div><div class="between mt"><span>Total da compra</span><strong id="selectedTotal">${brl(0)}</strong></div></div></div>`; 
+ document.querySelectorAll('.check').forEach(c=>c.addEventListener('change',selectedTotal));
+}
+function productHTML(p){
+ let all=db.products.filter(x=>x.productKey===p.productKey&&x.storeId===p.storeId).sort((a,b)=>a.month.localeCompare(b.month));
+ let prev=all.filter(x=>x.month<currentMonth).pop(), diff=prev?((p.price-prev.price)/prev.price*100):0;
+ let varHTML=prev?(diff>0?`<span class="up">↑ ${diff.toFixed(1)}%</span>`:diff<0?`<span class="down">↓ ${Math.abs(diff).toFixed(1)}%</span>`:'<span class="same">0%</span>'):'<span class="same">novo</span>';
+ return `<div class="product"><input class="check" type="checkbox" data-price="${p.price}"><div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="muted">Último: ${prev?brl(prev.price):'—'} · ${varHTML}</div></div><div class="price">${brl(p.price)}</div></div>`
+}
+function selectedTotal(){
+ let checked=[...document.querySelectorAll('.check:checked')];
+ let t=checked.reduce((s,e)=>s+Number(e.dataset.price),0);
+ let total=document.getElementById('selectedTotal'), count=document.getElementById('selectedCount');
+ if(total) total.textContent=brl(t);
+ if(count) count.textContent=checked.length;
+}
+function storeTab(type,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(type==='history')renderStoreHistory();else renderStoreList()}
+function renderStoreHistory(){let ps=db.products.filter(p=>p.storeId===currentStore.id).sort((a,b)=>b.month.localeCompare(a.month));document.getElementById('storeList').innerHTML=ps.length?'<div class="card">'+ps.map(p=>`<div class="product"><div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="muted">${monthLabel(p.month)}</div></div><strong>${brl(p.price)}</strong></div>`).join('')+'</div>':'<div class="empty">Sem histórico.</div>'}
+function openAddProduct(prefill=''){
+ openModal(`<h2>Adicionar produto</h2><input id="pname" placeholder="Nome do produto" value="${esc(prefill)}"><input id="pprice" class="mt" type="number" step="0.01" min="0" placeholder="Preço (R$)"><input id="pcode" class="mt" placeholder="Código de barras (opcional)"><input id="pmonth" class="mt" type="month" value="${currentMonth}"><button class="primary mt" onclick="addProduct()">Salvar produto</button><button class="secondary mt" style="width:100%" onclick="closeModal()">Cancelar</button>`)
+}
+function addProduct(){let name=document.getElementById('pname').value.trim(),price=Number(document.getElementById('pprice').value),code=document.getElementById('pcode').value.trim(),month=document.getElementById('pmonth').value;if(!name||!price||!month)return alert('Preencha produto, preço e mês.');let key=code||name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');db.products.push({id:Date.now(),storeId:currentStore.id,name,price,code,month,productKey:key});save();closeModal();renderStoreList()}
+async function openScanner(){
+ openModal(`<h2>▥ Escanear produto</h2>
+ <div class="camera">
+   <video id="video" autoplay muted playsinline></video>
+   <div class="frame"></div>
+   <div id="cammsg" style="position:absolute;bottom:10px;z-index:3;font-size:12px;background:#000b;padding:7px 11px;border-radius:9px">Toque em “Permitir câmera” para começar.</div>
+ </div>
+ <div class="card" style="margin:0 0 10px;padding:12px;background:#0d1510;border-color:#1d3d29">
+   <div style="font-weight:700">📷 Acesso à câmera</div>
+   <div class="muted mt">O navegador vai mostrar a janela de permissão. Escolha <b>Permitir</b>.</div>
+ </div>
+ <input id="manualCode" class="mt" placeholder="Ou digite o código de barras">
+ <button class="primary mt" onclick="requestCamera()">📷 Permitir câmera</button>
+ <button class="secondary mt" style="width:100%" onclick="lookupCode()">Usar código digitado</button>
+ <button class="secondary mt" style="width:100%" onclick="closeModal()">Fechar</button>`);
+}
+async function requestCamera(){
+ const msg=document.getElementById('cammsg');
+ try{
+   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+     throw new Error('unsupported');
+   }
+   if(msg) msg.textContent='Solicitando permissão...';
+   const stream=await navigator.mediaDevices.getUserMedia({
+     video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},
+     audio:false
+   });
+   const v=document.getElementById('video');
+   if(!v){stream.getTracks().forEach(t=>t.stop());return}
+   v.srcObject=stream;
+   await v.play();
+   window.currentCameraStream=stream;
+   if(msg) msg.textContent='Câmera ativa — aponte para o código de barras.';
+
+   if('BarcodeDetector' in window){
+     let detector;
+     try{
+       detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code']});
+     }catch(e){ detector=new BarcodeDetector(); }
+     const scan=async()=>{
+       if(!document.getElementById('video')){
+         stream.getTracks().forEach(t=>t.stop());
+         return;
+       }
+       try{
+         const codes=await detector.detect(v);
+         if(codes.length){
+           const code=codes[0].rawValue;
+           const input=document.getElementById('manualCode');
+           if(input) input.value=code;
+           if(msg) msg.textContent='✓ Código detectado: '+code;
+           if(navigator.vibrate) navigator.vibrate(100);
+         }
+       }catch(e){}
+       requestAnimationFrame(scan);
+     };
+     scan();
+   }else{
+     // Fallback via ZXing for browsers without BarcodeDetector.
+     if(msg) msg.textContent='Ativando leitor compatível...';
+     if(!window.ZXingBrowser){
+       await new Promise((resolve,reject)=>{
+         const s=document.createElement('script');
+         s.src='https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js';
+         s.onload=resolve; s.onerror=reject;
+         document.head.appendChild(s);
+       });
+     }
+     const reader=new ZXingBrowser.BrowserMultiFormatReader();
+     window.zxingReader=reader;
+     const devices=await reader.listVideoInputDevices();
+     const deviceId=(devices.find(d=>/back|environment|traseira/i.test(d.label))||devices[devices.length-1])?.deviceId;
+     await reader.decodeFromVideoDevice(deviceId,v,(result)=>{
+       if(result){
+         const code=result.getText();
+         const input=document.getElementById('manualCode');
+         if(input) input.value=code;
+         if(msg) msg.textContent='✓ Código detectado: '+code;
+         if(navigator.vibrate) navigator.vibrate(100);
+       }
+     });
+   }
+ }catch(e){
+   if(msg){
+     if(location.protocol==='file:' || location.protocol==='content:'){
+       msg.textContent='⚠️ Este HTML foi aberto como arquivo. Para a câmera funcionar, abra em HTTPS ou no APK.';
+     }else if(e.name==='NotAllowedError'){
+       msg.textContent='⚠️ Permissão negada. Libere a câmera nas configurações do navegador.';
+     }else{
+       msg.textContent='⚠️ Não foi possível abrir a câmera. Tente novamente.';
+     }
+   }
+ }
+}
+function lookupCode(){let code=document.getElementById('manualCode').value.trim();closeModal();if(!currentStore){openStore();return}openAddProduct();if(code)document.getElementById('pcode').value=code}
+function renderHistory(){
+ let groups={};db.products.forEach(p=>(groups[p.productKey]??=[]).push(p));let el=document.getElementById('historyList');
+ let arr=Object.values(groups).sort((a,b)=>a[0].name.localeCompare(b[0].name));
+ el.innerHTML=arr.length?arr.map(g=>{g.sort((a,b)=>b.month.localeCompare(a.month));let p=g[0],prev=g[1];let diff=prev?(p.price-prev.price)/prev.price*100:0;return `<div class="card"><div class="between"><strong>${esc(p.name)}</strong><strong>${brl(p.price)}</strong></div><div class="muted">${esc(db.stores.find(s=>s.id===p.storeId)?.name||'')}</div><div class="mt">${prev?(diff>0?`🔴 ↑ ${diff.toFixed(1)}% mais caro que ${monthLabel(prev.month)}`:diff<0?`🟢 ↓ ${Math.abs(diff).toFixed(1)}% mais barato que ${monthLabel(prev.month)}`:'⚪ Mesmo preço'): 'Primeiro registro'}</div></div>`}).join(''):'<div class="empty">Seu histórico aparecerá aqui.</div>'
+}
+function renderReport(){let months={};db.products.forEach(p=>months[p.month]=(months[p.month]||0)+p.price);let rows=Object.entries(months).sort().reverse();document.getElementById('report').innerHTML=rows.length?rows.map((r,i)=>{let prev=rows[i+1];let d=prev?(r[1]-prev[1])/prev[1]*100:0;return `<div class="between" style="padding:10px 0;border-bottom:1px solid #29322d"><span>${monthLabel(r[0])}</span><strong>${brl(r[1])} ${prev?(d>0?'🔴 ↑':'🟢 ↓'):''}</strong></div>`}).join(''):'Nenhuma compra registrada ainda.'}
+renderHome();
+
+</script>
+</body>
+</html>
