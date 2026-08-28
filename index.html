@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Preço Certo">
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="./launchericon-192x192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./launchericon-512x512.png">
-<link rel="apple-touch-icon" href="./launchericon-192x192.png">
+<link rel="manifest" href="./manifest.json?v=6">
+<link rel="icon" type="image/png" sizes="192x192" href="./launchericon-192x192.png?v=6">
+<link rel="icon" type="image/png" sizes="512x512" href="./launchericon-512x512.png?v=6">
+<link rel="apple-touch-icon" href="./launchericon-192x192.png?v=6">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -240,8 +240,7 @@ renderHome();
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js', { scope: './' })
-      .then(function () { console.log('Service Worker ativo'); })
+    navigator.serviceWorker.register('./service-worker.js?v=6', { scope: './' }); })
       .catch(function (err) { console.log('Falha no Service Worker:', err); });
   });
 }
