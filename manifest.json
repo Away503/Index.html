@@ -1,0 +1,14 @@
+{
+  "background_color": "#08110c",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Preço Certo",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "Preço Certo",
+  "start_url": "https://away503.github.io/Index.html/",
+  "theme_color": "#20c866",
+  "id": "/",
+  "description": "Aplicativo inteligente para registrar produtos, comparar preços entre meses e organizar compras em diferentes estabelecimentos.",
+  "lang": "pt"
+}
