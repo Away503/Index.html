@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Preço Certo">
-<link rel="manifest" href="./manifest.json?v=6">
-<link rel="icon" type="image/png" sizes="192x192" href="./launchericon-192x192.png?v=6">
-<link rel="icon" type="image/png" sizes="512x512" href="./launchericon-512x512.png?v=6">
-<link rel="apple-touch-icon" href="./launchericon-192x192.png?v=6">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./launchericon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./launchericon-512x512.png">
+<link rel="apple-touch-icon" href="./launchericon-192x192.png">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -37,10 +37,30 @@ button{border:0;border-radius:11px;padding:12px 14px;cursor:pointer;font-weight:
 .empty{text-align:center;padding:28px 10px;color:var(--muted)}
 .selectedBox{margin-top:14px;padding:13px;border:1px solid #31513b;border-radius:13px;background:#102016}.selectedBox strong{font-size:18px}
 </style>
+
+<style id="themeOverrides">
+:root{
+  --accent:#20e36b;
+  --accent2:#0fa653;
+}
+.logo,.primary,.scanBtn{background:linear-gradient(145deg,var(--accent),var(--accent2))!important}
+.hero{background:linear-gradient(145deg,var(--accent2),var(--accent))!important}
+.check{accent-color:var(--accent)!important}
+.tab.active,.nav.active{color:var(--accent)!important}
+.storeIcon{border-color:color-mix(in srgb,var(--accent) 35%,#1d5a36)!important}
+.settingsBtn{margin-left:auto;width:42px;height:42px;border-radius:12px;background:#16221b;color:var(--accent);padding:0;font-size:20px}
+.iconBtn{width:38px;height:38px;padding:0;border-radius:10px;background:#241515;color:#ff7070;font-size:17px;flex:0 0 auto}
+.colorGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.colorChoice{height:56px;border:2px solid #ffffff20;border-radius:14px;color:white;font-size:13px}
+.scanFound{border:1px solid #2b5d3a;background:#0d1911;border-radius:14px;padding:14px;margin-top:12px}
+.offlinePill{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:#8ef0ac;background:#102118;border:1px solid #234b31;border-radius:999px;padding:5px 8px;margin-top:5px}
+</style>
+
+<script src="./zxing-browser.min.js" defer></script>
 </head>
 <body>
 <div class="app">
-<header><div class="brand"><div class="logo">🛒</div><div><h1>Preço Certo</h1><div class="sub">Histórico de preços inteligente</div></div></div></header>
+<header><div class="brand"><div class="logo">🛒</div><div><h1>Preço Certo</h1><div class="sub">Histórico de preços inteligente</div><div class="offlinePill">● Modo offline</div></div><button class="settingsBtn" onclick="openSettings()" aria-label="Configurações">⚙</button></div></header>
 
 <main>
 <section id="home" class="screen active">
@@ -78,14 +98,346 @@ button{border:0;border-radius:11px;padding:12px 14px;cursor:pointer;font-weight:
 <div id="modal" class="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
-const KEY='precoCertoV1';
+const KEY='precoCertoOfflineV1';
+const THEME_KEY='precoCertoThemeV1';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{stores:[],products:[]};
 let currentStore=null, currentMonth=new Date().toISOString().slice(0,7);
+let scannerBusy=false, currentCameraStream=null, scanLoopId=null, zxingControls=null;
+
 const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 function save(){localStorage.setItem(KEY,JSON.stringify(db));}
 function monthLabel(m){let [y,mo]=m.split('-');return new Date(y,mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
-function show(id){if(window.currentCameraStream){window.currentCameraStream.getTracks().forEach(t=>t.stop());window.currentCameraStream=null;}if(window.zxingReader){try{window.zxingReader.reset()}catch(e){}}document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='home')renderHome();
+function normalizeName(n){return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function stopCamera(){
+  scannerBusy=false;
+  if(zxingControls){try{zxingControls.stop();}catch(e){} zxingControls=null;}
+  if(scanLoopId){cancelAnimationFrame(scanLoopId);scanLoopId=null;}
+  if(currentCameraStream){currentCameraStream.getTracks().forEach(t=>t.stop());currentCameraStream=null;}
+}
+function show(id){
+  stopCamera();
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='home')renderHome();
+  if(id==='history')renderHistory();
+  if(id==='reports')renderReport();
+}
+function nav(el){document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
+function openModal(content){document.getElementById('sheet').innerHTML=content;document.getElementById('modal').classList.add('show')}
+function closeModal(){stopCamera();document.getElementById('modal').classList.remove('show')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+function getTheme(){
+  return JSON.parse(localStorage.getItem(THEME_KEY)||'null')||{name:'Verde',a:'#20e36b',b:'#0fa653'};
+}
+function applyTheme(t=getTheme()){
+  document.documentElement.style.setProperty('--accent',t.a);
+  document.documentElement.style.setProperty('--accent2',t.b);
+  document.documentElement.style.setProperty('--green',t.a);
+  document.documentElement.style.setProperty('--green2',t.b);
+  const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.content=t.a;
+}
+function setTheme(name,a,b){localStorage.setItem(THEME_KEY,JSON.stringify({name,a,b}));applyTheme({name,a,b});closeModal();renderHome();}
+function openSettings(){
+  const t=getTheme();
+  openModal(`<h2>⚙ Personalização</h2>
+    <div class="muted">Cor atual: <b>${esc(t.name)}</b>. A escolha fica salva neste aparelho.</div>
+    <div class="colorGrid">
+      <button class="colorChoice" style="background:#20e36b" onclick="setTheme('Verde','#20e36b','#0fa653')">Verde</button>
+      <button class="colorChoice" style="background:#2788ff" onclick="setTheme('Azul','#2788ff','#1558c9')">Azul</button>
+      <button class="colorChoice" style="background:#a855f7" onclick="setTheme('Roxo','#a855f7','#7132b3')">Roxo</button>
+      <button class="colorChoice" style="background:#ff8a24" onclick="setTheme('Laranja','#ff8a24','#c55a08')">Laranja</button>
+      <button class="colorChoice" style="background:#ff4d63" onclick="setTheme('Vermelho','#ff4d63','#b82437')">Vermelho</button>
+      <button class="colorChoice" style="background:#16c8cf" onclick="setTheme('Ciano','#16c8cf','#0b858a')">Ciano</button>
+    </div>
+    <button class="secondary mt" style="width:100%" onclick="closeModal()">Fechar</button>`);
+}
+
+function renderHome(){
+  let total=db.products.filter(p=>p.month===currentMonth).reduce((s,p)=>s+p.price,0);
+  document.getElementById('monthTotal').textContent=brl(total);
+  document.getElementById('monthName').textContent=monthLabel(currentMonth);
+  let el=document.getElementById('stores'); el.innerHTML='';
+  if(!db.stores.length){
+    el.innerHTML='<div class="empty">Nenhum estabelecimento cadastrado.<br><br>Adicione seu primeiro mercado, açougue ou feira.</div>';
+    return;
+  }
+  db.stores.forEach(s=>{
+    let ps=db.products.filter(p=>p.storeId===s.id&&p.month===currentMonth);
+    let t=ps.reduce((a,p)=>a+p.price,0);
+    el.innerHTML+=`<div class="card store" onclick="openStore(${s.id})">
+      <div class="storeIcon">${s.icon||'🏪'}</div>
+      <div class="storeInfo"><div class="storeName">${esc(s.name)}</div><div class="muted">${ps.length} produto(s)</div></div>
+      <strong>${brl(t)}</strong>
+      <button class="iconBtn" onclick="event.stopPropagation();deleteStore(${s.id})" title="Apagar mercado">🗑</button>
+    </div>`;
+  });
+}
+function openStore(id){
+  if(id){
+    currentStore=db.stores.find(s=>s.id===id);
+    if(!currentStore)return;
+    show('storeScreen');
+    document.getElementById('storeTitle').textContent=currentStore.name;
+    renderStoreList();
+    return;
+  }
+  openModal(`<h2>Novo estabelecimento</h2>
+    <input id="sname" placeholder="Ex.: Mercado Central">
+    <div class="row mt">
+      <button class="secondary" onclick="createStore('🛒')">🛒 Mercado</button>
+      <button class="secondary" onclick="createStore('🥩')">🥩 Açougue</button>
+      <button class="secondary" onclick="createStore('🥦')">🥦 Feira</button>
+    </div>
+    <button class="primary mt" onclick="createStore('🏪')">Criar estabelecimento</button>
+    <button class="secondary mt" style="width:100%" onclick="closeModal()">Cancelar</button>`);
+}
+function createStore(icon){
+  let name=document.getElementById('sname').value.trim();
+  if(!name)return alert('Digite o nome do estabelecimento.');
+  let s={id:Date.now(),name,icon}; db.stores.push(s); save(); closeModal(); openStore(s.id);
+}
+function deleteStore(id){
+  const s=db.stores.find(x=>x.id===id); if(!s)return;
+  if(!confirm(`Apagar "${s.name}" e todo o histórico de produtos desse estabelecimento?`))return;
+  db.stores=db.stores.filter(x=>x.id!==id);
+  db.products=db.products.filter(p=>p.storeId!==id);
+  if(currentStore?.id===id)currentStore=null;
+  save(); renderHome();
+}
+
+function renderStoreList(){
+  let ps=db.products.filter(p=>p.storeId===currentStore.id&&p.month===currentMonth);
+  let el=document.getElementById('storeList');
+  if(!ps.length){
+    el.innerHTML='<div class="empty">Nenhum produto neste mês.<br><br>Use ＋ para adicionar ou escaneie um código.</div>';
+    return;
+  }
+  el.innerHTML=`<div class="card">
+    <div class="muted">Marque os produtos. O total muda na hora.</div>
+    ${ps.map(p=>productHTML(p)).join('')}
+    <div class="selectedBox">
+      <div class="between"><span>Selecionados</span><strong id="selectedCount">0</strong></div>
+      <div class="between mt"><span>Total da compra</span><strong id="selectedTotal">${brl(0)}</strong></div>
+    </div>
+  </div>`;
+  document.querySelectorAll('.check').forEach(c=>c.addEventListener('change',selectedTotal));
+}
+function productHTML(p){
+  let all=db.products.filter(x=>x.productKey===p.productKey&&x.storeId===p.storeId).sort((a,b)=>a.month.localeCompare(b.month));
+  let prev=all.filter(x=>x.month<p.month).pop(), diff=prev?((p.price-prev.price)/prev.price*100):0;
+  let varHTML=prev?(diff>0?`<span class="up">↑ ${diff.toFixed(1)}%</span>`:diff<0?`<span class="down">↓ ${Math.abs(diff).toFixed(1)}%</span>`:'<span class="same">0%</span>'):'<span class="same">novo</span>';
+  return `<div class="product">
+    <input class="check" type="checkbox" data-price="${p.price}">
+    <div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="muted">Anterior: ${prev?brl(prev.price):'—'} · ${varHTML}</div></div>
+    <div class="price">${brl(p.price)}</div>
+    <button class="iconBtn" onclick="deleteProduct('${encodeURIComponent(p.productKey)}',${p.storeId})" title="Apagar produto">🗑</button>
+  </div>`;
+}
+function selectedTotal(){
+  let checked=[...document.querySelectorAll('.check:checked')];
+  let t=checked.reduce((s,e)=>s+Number(e.dataset.price),0);
+  let total=document.getElementById('selectedTotal'), count=document.getElementById('selectedCount');
+  if(total) total.textContent=brl(t);
+  if(count) count.textContent=checked.length;
+}
+function deleteProduct(encodedKey,storeId){
+  const key=decodeURIComponent(encodedKey);
+  const p=db.products.find(x=>x.productKey===key&&x.storeId===storeId);
+  if(!p)return;
+  if(!confirm(`Apagar "${p.name}" e todo o histórico desse produto neste estabelecimento?`))return;
+  db.products=db.products.filter(x=>!(x.productKey===key&&x.storeId===storeId));
+  save();
+  if(currentStore?.id===storeId)renderStoreList(); else renderHome();
+}
+function storeTab(type,btn){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
+  if(type==='history')renderStoreHistory(); else renderStoreList();
+}
+function renderStoreHistory(){
+  let ps=db.products.filter(p=>p.storeId===currentStore.id).sort((a,b)=>b.month.localeCompare(a.month));
+  document.getElementById('storeList').innerHTML=ps.length?'<div class="card">'+ps.map(p=>`<div class="product"><div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="muted">${monthLabel(p.month)}</div></div><strong>${brl(p.price)}</strong></div>`).join('')+'</div>':'<div class="empty">Sem histórico.</div>';
+}
+
+function openAddProduct(prefill='',code=''){
+  if(!currentStore){chooseStore('add');return;}
+  openModal(`<h2>Adicionar produto</h2>
+    <input id="pname" placeholder="Nome do produto" value="${esc(prefill)}">
+    <input id="pprice" class="mt" type="number" step="0.01" min="0" placeholder="Preço (R$)">
+    <input id="pcode" class="mt" placeholder="Código de barras (opcional)" value="${esc(code)}">
+    <input id="pmonth" class="mt" type="month" value="${currentMonth}">
+    <button class="primary mt" onclick="addProduct()">Salvar produto</button>
+    <button class="secondary mt" style="width:100%" onclick="closeModal()">Cancelar</button>`);
+}
+function addProduct(){
+  let name=document.getElementById('pname').value.trim(),
+      price=Number(document.getElementById('pprice').value),
+      code=document.getElementById('pcode').value.trim(),
+      month=document.getElementById('pmonth').value;
+  if(!name||!price||!month)return alert('Preencha produto, preço e mês.');
+  let key=code||normalizeName(name);
+  const sameMonth=db.products.find(x=>x.storeId===currentStore.id&&x.productKey===key&&x.month===month);
+  if(sameMonth){sameMonth.name=name;sameMonth.price=price;sameMonth.code=code;}
+  else db.products.push({id:Date.now(),storeId:currentStore.id,name,price,code,month,productKey:key});
+  save(); closeModal(); renderStoreList();
+}
+
+function chooseStore(action='scan'){
+  if(!db.stores.length){openStore();return;}
+  openModal(`<h2>Escolha o estabelecimento</h2>
+    <div class="muted">Os preços ficam separados por mercado.</div>
+    <div class="mt">${db.stores.map(s=>`<button class="secondary" style="width:100%;margin-bottom:8px" onclick="selectStoreAndContinue(${s.id},'${action}')">${s.icon||'🏪'} ${esc(s.name)}</button>`).join('')}</div>
+    <button class="secondary" style="width:100%" onclick="closeModal()">Cancelar</button>`);
+}
+function selectStoreAndContinue(id,action){
+  currentStore=db.stores.find(s=>s.id===id); closeModal();
+  if(action==='scan')openScanner(); else openAddProduct();
+}
+
+async function openScanner(){
+  if(!currentStore){chooseStore('scan');return;}
+  scannerBusy=false;
+  openModal(`<h2>📷 Escanear produto</h2>
+    <div class="camera"><video id="video" autoplay muted playsinline></video><div class="frame"></div>
+      <div id="cammsg" style="position:absolute;bottom:10px;z-index:3;font-size:12px;background:#000b;padding:7px 11px;border-radius:9px">Iniciando câmera...</div>
+    </div>
+    <div class="muted">Ao reconhecer o código, o app avança sozinho.</div>
+    <input id="manualCode" class="mt" inputmode="numeric" placeholder="Ou digite o código">
+    <button class="secondary mt" style="width:100%" onclick="manualDetectedCode()">Usar código digitado</button>
+    <button class="secondary mt" style="width:100%" onclick="closeModal()">Fechar</button>`);
+  await requestCamera();
+}
+async function requestCamera(){
+  const msg=document.getElementById('cammsg');
+  const v=document.getElementById('video');
+  if(!v)return;
+
+  // 1) Preferência: ZXing salvo dentro do próprio app (100% offline).
+  if(window.ZXingBrowser && ZXingBrowser.BrowserMultiFormatReader){
+    try{
+      if(msg)msg.textContent='Leitor offline ZXing ativo — aponte para o código.';
+      const reader=new ZXingBrowser.BrowserMultiFormatReader();
+      zxingControls=await reader.decodeFromConstraints(
+        {video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false},
+        v,
+        (result,error,controls)=>{
+          if(result && !scannerBusy){
+            scannerBusy=true;
+            if(navigator.vibrate)navigator.vibrate(120);
+            try{controls.stop();}catch(e){}
+            handleDetectedCode(result.getText ? result.getText() : String(result.text||result));
+          }
+        }
+      );
+      return;
+    }catch(e){
+      console.log('Falha no ZXing local, tentando leitor nativo:',e);
+    }
+  }
+
+  // 2) Fallback offline: BarcodeDetector nativo do Android/Chrome/WebView.
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('camera-api');
+    currentCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    v.srcObject=currentCameraStream; await v.play();
+    if(msg)msg.textContent='Câmera ativa — aponte para o código.';
+    if('BarcodeDetector' in window){
+      let detector;
+      try{detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code']});}
+      catch(e){detector=new BarcodeDetector();}
+      const scan=async()=>{
+        if(scannerBusy||!document.getElementById('video'))return;
+        try{
+          const codes=await detector.detect(v);
+          if(codes.length){
+            scannerBusy=true;
+            if(navigator.vibrate)navigator.vibrate(120);
+            handleDetectedCode(codes[0].rawValue);
+            return;
+          }
+        }catch(e){}
+        scanLoopId=requestAnimationFrame(scan);
+      };
+      scan();
+    }else{
+      if(msg)msg.textContent='⚠️ Leitor ZXing local não encontrado. Use o campo de código até adicionar zxing-browser.min.js ao pacote.';
+    }
+  }catch(e){
+    if(msg)msg.textContent='❌ Não consegui abrir a câmera. Verifique a permissão CAMERA do APK.';
+  }
+}
+function manualDetectedCode(){
+  const input=document.getElementById('manualCode');
+  const code=input?.value.trim();
+  if(!code)return alert('Digite o código.');
+  handleDetectedCode(code);
+}
+function handleDetectedCode(code){
+  if(!code)return;
+  stopCamera();
+  const inStore=db.products.filter(p=>p.storeId===currentStore.id&&p.code===code).sort((a,b)=>a.month.localeCompare(b.month));
+  const existing=inStore[inStore.length-1];
+  if(existing){
+    showExistingScannedProduct(existing,code);
+    return;
+  }
+  const anywhere=db.products.filter(p=>p.code===code).sort((a,b)=>a.month.localeCompare(b.month)).pop();
+  closeModal();
+  openAddProduct(anywhere?.name||'',code);
+}
+function showExistingScannedProduct(existing,code){
+  const history=db.products.filter(p=>p.storeId===currentStore.id&&p.productKey===existing.productKey).sort((a,b)=>a.month.localeCompare(b.month));
+  openModal(`<h2>✅ Produto encontrado</h2>
+    <div class="scanFound">
+      <div class="muted">${esc(currentStore.name)}</div>
+      <div style="font-size:20px;font-weight:800;margin:4px 0">${esc(existing.name)}</div>
+      <div class="between"><span>Último valor</span><strong>${brl(existing.price)}</strong></div>
+      <div class="muted mt">Último registro: ${monthLabel(existing.month)} · Código ${esc(code)}</div>
+    </div>
+    <label class="muted">Valor atual</label>
+    <input id="scanNewPrice" class="mt" type="number" step="0.01" min="0" placeholder="R$ 0,00">
+    <button class="primary mt" onclick="confirmScannedPrice('${encodeURIComponent(existing.productKey)}','${encodeURIComponent(code)}')">Usar valor atual</button>
+    <button class="secondary mt" style="width:100%" onclick="closeModal()">Não alterar agora</button>`);
+}
+function confirmScannedPrice(encodedKey,encodedCode){
+  const key=decodeURIComponent(encodedKey), code=decodeURIComponent(encodedCode);
+  const latest=db.products.filter(p=>p.storeId===currentStore.id&&p.productKey===key).sort((a,b)=>a.month.localeCompare(b.month)).pop();
+  const value=Number(document.getElementById('scanNewPrice').value);
+  if(!value)return alert('Digite o valor atual.');
+  const diff=value-latest.price;
+  const pct=latest.price?Math.abs(diff/latest.price*100):0;
+  const status=diff>0?`mais caro (+${pct.toFixed(1)}%)`:diff<0?`mais barato (-${pct.toFixed(1)}%)`:'com o mesmo preço';
+  if(!confirm(`Valor antigo: ${brl(latest.price)}\nValor atual: ${brl(value)}\n\nEstá ${status}.\nDeseja registrar o novo valor?`))return;
+  const current=db.products.find(p=>p.storeId===currentStore.id&&p.productKey===key&&p.month===currentMonth);
+  if(current){current.price=value;current.code=code;current.name=latest.name;}
+  else db.products.push({id:Date.now(),storeId:currentStore.id,name:latest.name,price:value,code,month:currentMonth,productKey:key});
+  save(); closeModal(); show('storeScreen'); document.getElementById('storeTitle').textContent=currentStore.name; renderStoreList();
+}
+
+function renderHistory(){
+  let groups={}; db.products.forEach(p=>(groups[p.storeId+'|'+p.productKey]??=[]).push(p));
+  let el=document.getElementById('historyList'), arr=Object.values(groups).sort((a,b)=>a[0].name.localeCompare(b[0].name));
+  el.innerHTML=arr.length?arr.map(g=>{
+    g.sort((a,b)=>a.month.localeCompare(b.month));
+    let p=g[g.length-1], prev=g[g.length-2], diff=prev?((p.price-prev.price)/prev.price*100):0;
+    return `<div class="card"><div class="between"><strong>${esc(p.name)}</strong><strong>${brl(p.price)}</strong></div>
+      <div class="muted">${esc(db.stores.find(s=>s.id===p.storeId)?.name||'')} · ${monthLabel(p.month)}</div>
+      <div class="mt">${prev?(diff>0?`🔴 ↑ ${diff.toFixed(1)}% mais caro`:diff<0?`🟢 ↓ ${Math.abs(diff).toFixed(1)}% mais barato`:'⚪ Mesmo preço'):'Primeiro registro'}</div>
+    </div>`;
+  }).join(''):'<div class="empty">Seu histórico aparecerá aqui.</div>';
+}
+function renderReport(){
+  let months={}; db.products.forEach(p=>months[p.month]=(months[p.month]||0)+p.price);
+  let rows=Object.entries(months).sort().reverse();
+  document.getElementById('report').innerHTML=rows.length?rows.map((r,i)=>{
+    let prev=rows[i+1], d=prev?(r[1]-prev[1])/prev[1]*100:0;
+    return `<div class="between" style="padding:10px 0;border-bottom:1px solid #29322d"><span>${monthLabel(r[0])}</span><strong>${brl(r[1])} ${prev?(d>0?'🔴 ↑':'🟢 ↓'):''}</strong></div>`;
+  }).join(''):'Nenhuma compra registrada ainda.';
+}
+
+applyTheme();
+renderHome();
 if(id==='history')renderHistory();if(id==='reports')renderReport();}
 function nav(el){document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
 function openModal(html){document.getElementById('sheet').innerHTML=html;document.getElementById('modal').classList.add('show')}
@@ -238,11 +590,8 @@ renderHome();
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js?v=6', { scope: './' }); })
-      .catch(function (err) { console.log('Falha no Service Worker:', err); });
-  });
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 }
 </script>
 

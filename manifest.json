@@ -1,33 +1,27 @@
 {
   "name": "Preço Certo",
   "short_name": "Preço Certo",
-  "description": "Aplicativo inteligente para registrar produtos, comparar preços entre meses e organizar compras em diferentes estabelecimentos.",
+  "description": "Histórico inteligente de preços e compras.",
   "id": "./",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#08110C",
+  "background_color": "#080c0a",
   "theme_color": "#20C866",
   "lang": "pt-BR",
-  "dir": "ltr",
   "icons": [
     {
       "src": "./launchericon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./launchericon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
-  ],
-  "categories": [
-    "shopping",
-    "finance",
-    "utilities"
   ]
 }
