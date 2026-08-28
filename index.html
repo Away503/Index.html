@@ -1,9 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<meta name="theme-color" content="#20C866">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Preço Certo">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./launchericon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./launchericon-512x512.png">
+<link rel="apple-touch-icon" href="./launchericon-192x192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#16a34a">
 <title>Preço Certo</title>
 <style>
 :root{--green:#20e36b;--green2:#0fa653;--light:#103b23;--red:#ff5b61;--text:#f5f7f6;--muted:#98a39d;--card:#151a17;--bg:#080c0a;--border:#26302b;--soft:#101612}
@@ -227,5 +235,15 @@ function renderReport(){let months={};db.products.forEach(p=>months[p.month]=(mo
 renderHome();
 
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(function (err) { console.log('Service Worker:', err); });
+  });
+}
+</script>
+
 </body>
 </html>
